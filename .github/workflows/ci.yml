@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Typecheck + unit/integration/component tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: erp
+          POSTGRES_PASSWORD: erp_pass
+          POSTGRES_DB: erp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U erp
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck (all workspaces)
+        run: npm run typecheck
+      - name: API unit tests
+        run: npm run test:unit
+      - name: API integration tests
+        run: npm run test:integration
+      - name: Web component tests
+        run: npm run test:web
+
+  e2e:
+    name: E2E (Playwright against Docker stack)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Start stack
+        run: docker compose up -d --build
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:4000/health >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://localhost:4000/health
+      - name: Run e2e
+        run: npm run test:e2e

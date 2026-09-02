@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  WAREHOUSE
+  SALES
+}
+
+enum SourceType {
+  CSV
+  PARTNER_API
+  LEGACY
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  SHIPPED
+  CANCELLED
+}
+
+enum BatchStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ConflictStatus {
+  OPEN
+  RESOLVED_APPLIED
+  RESOLVED_DISCARDED
+}
+
+enum ConflictEntityType {
+  INVENTORY
+  ORDER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(SALES)
+  createdAt    DateTime @default(now())
+}
+
+model Supplier {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  contactEmail String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  sku          String   @unique
+  name         String
+  category     String?
+  unitCost     Decimal?  @db.Decimal(12, 2)
+  defaultPrice Decimal?  @db.Decimal(12, 2)
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  stock        StockItem?
+  orderItems   OrderItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model StockItem {
+  id               String   @id @default(cuid())
+  productId        String   @unique
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantityOnHand   Int      @default(0)
+  reorderPoint     Int      @default(0)
+  location         String?
+  lastSource       SourceType?
+  lastReconciledAt DateTime?
+  updatedAt        DateTime @updatedAt
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  number       String      @unique
+  customerName String
+  status       OrderStatus @default(DRAFT)
+  source       SourceType?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku       String
+  quantity  Int
+  unitPrice Decimal   @db.Decimal(12, 2)
+}
+
+model ImportBatch {
+  id           String      @id @default(cuid())
+  source       SourceType
+  status       BatchStatus @default(PENDING)
+  triggeredBy  String
+  totalRecords Int         @default(0)
+  applied      Int         @default(0)
+  conflicts    Int         @default(0)
+  errors       Json?
+  errorMessage String?
+  startedAt    DateTime    @default(now())
+  finishedAt   DateTime?
+}
+
+model ReconciliationConflict {
+  id            String             @id @default(cuid())
+  entityType    ConflictEntityType
+  entityKey     String
+  source        SourceType
+  batchId       String?
+  field         String
+  currentValue  String?
+  incomingValue String?
+  reason        String
+  status        ConflictStatus     @default(OPEN)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolution    String?
+  createdAt     DateTime           @default(now())
+
+  @@index([status, entityType])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String?
+  source     SourceType?
+  batchId    String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

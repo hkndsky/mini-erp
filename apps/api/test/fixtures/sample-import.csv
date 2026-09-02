@@ -1,0 +1,4 @@
+sku,name,quantity_on_hand,unit_cost,location
+SKU-001,Bolt M8 x 40,130,2.45,WH-A
+SKU-002,Nut M8 Zinc,80,1.12,WH-A
+SKU-005,Threaded Rod M12 x 300,25,8.90,WH-B

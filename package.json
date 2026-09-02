@@ -1,0 +1,35 @@
+{
+  "name": "mini-erp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mini ERP - multi-source inventory & order sync (TypeScript / Node / PostgreSQL)",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspace @erp/api",
+    "test:integration": "npm run test:integration --workspace @erp/api",
+    "test:api": "npm run test --workspace @erp/api",
+    "test:web": "npm run test --workspace @erp/web",
+    "test:e2e": "npm run test:e2e --workspace @erp/web",
+    "db:push": "npm run db:push --workspace @erp/api",
+    "db:migrate": "npm run db:migrate --workspace @erp/api",
+    "db:deploy": "npm run db:deploy --workspace @erp/api",
+    "db:seed": "npm run db:seed --workspace @erp/api",
+    "db:setup": "npm run db:migrate --workspace @erp/api && npm run db:seed --workspace @erp/api",
+    "dev:api": "npm run dev --workspace @erp/api",
+    "dev:web": "npm run dev --workspace @erp/web",
+    "dev:partner": "npm run dev --workspace @erp/mock-partner",
+    "dev": "concurrently -n API,WEB,PARTNER -c blue,magenta,yellow \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:partner\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

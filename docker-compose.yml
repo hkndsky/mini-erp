@@ -1,0 +1,68 @@
+name: mini-erp
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_pass
+      POSTGRES_DB: erp
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  partner:
+    build:
+      context: .
+      dockerfile: apps/mock-partner/Dockerfile
+    ports:
+      - "4010:4010"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://erp:erp_pass@db:5432/erp
+      PORT: "4000"
+      SYNC_ENABLED: "false"
+      PARTNER_API_URL: http://partner:4010
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command:
+      sh -c "npm run db:deploy --workspace @erp/api && npm run db:seed --workspace @erp/api && node apps/api/dist/src/main.js"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_PROXY_TARGET: http://api:4000
+    ports:
+      - "5173:5173"
+
+volumes:
+  db-data:

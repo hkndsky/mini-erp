@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+**/coverage
+.nyc_output
+playwright-report
+test-results
+.git
+*.log
+.env
+.env.*
+.DS_Store

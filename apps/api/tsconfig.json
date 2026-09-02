@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "strictPropertyInitialization": false,
+    "types": ["node", "multer", "node-cron"]
+  },
+  "include": ["src", "prisma"],
+  "exclude": ["node_modules", "dist", "test"]
+}
